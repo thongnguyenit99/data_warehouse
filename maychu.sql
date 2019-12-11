@@ -1,25 +1,37 @@
-﻿use DATA_WAREHOUSE
+﻿
+
+CREATE DATABASE DATA_WAREHOUSE
+use DATA_WAREHOUSE
 go
 -----Tạo bảng
 CREATE TABLE HoaDon (
  MaHD nvarchar(15) not null ,
- MaKH nvarchar(15) NOT NULL,
+ MaKhachHang nvarchar(15) NOT NULL,
  SanPham nvarchar(30) not null,
  NgayLap date,
  DonGia float,
  SoLuong int,
  MaNguonDuLieu nvarchar(15) not null ,
  ThoiGian datetime,
- TrangThai char(1),
+ TrangThai bit,
  primary key(MaHD,MaNguonDuLieu)
+
 )
 CREATE TABLE KhachHang(
- MaKH NVARCHAR(15),
+ MaKH NVARCHAR(15) not null,
  HoTen NVARCHAR(30),
  NgaySinh datetime,
  MaNguonDuLieu nvarchar(15) not null ,
+ ThoiGian datetime,
+ TrangThai bit,
  primary key(MaKH,MaNguonDuLieu)
 )
+--- TẠO KHOÁ NGOẠI ---
+GO
+ALTER TABLE [dbo].[HoaDon]
+  ADD CONSTRAINT fk_HD_KH
+  FOREIGN KEY (MaKhachHang,MaNguonDuLieu)
+  REFERENCES [dbo].[KhachHang] (MaKH,MaNguonDuLieu);
 GO
 
 ---- THEM DU LIEU CN1 VAO DATA MAY CHU
@@ -32,7 +44,7 @@ begin
     DECLARE @MAKH NVARCHAR(10)
 	declare a cursor for
 	(
-		select * from ChiNhanh_1.[dbo].ChiNhanh_1
+		select * from ChiNhanh_1.dbo.KhachHang
 	)
 	open a
 	DECLARE @HOKH NVARCHAR(10),@TENKH NVARCHAR(10),@NGS CHAR(2),@TS CHAR(2),@NS CHAR(2),@TG DATETIME,@TT CHAR(1)
@@ -43,30 +55,30 @@ begin
 		if(@TT = 0)
 			begin
 				--viet delete
-			   SELECT  @HOTEN= ( SELECT CONCAT(HoKhachHang,' ',TenKhachHang) AS HoTen FROM ChiNhanh_1.[dbo].ChiNhanh_1)
-			   SELECT @BIRTHDAY=( SELECT CONCAT(NgaySinh,'-',ThangSinh,'-',NamSinh) AS BirthDay FROM ChiNhanh_1.[dbo].ChiNhanh_1)
+			   SELECT  @HOTEN= ( SELECT CONCAT(HoKhachHang,' ',TenKhachHang) AS HoTen FROM ChiNhanh_1.dbo.KhachHang)
+			   SELECT @BIRTHDAY=( SELECT CONCAT(NgaySinh,'-',ThangSinh,'-',NamSinh) AS BirthDay FROM ChiNhanh_1.dbo.KhachHang)
 			   				
-			   DELETE FROM  ChiNhanh_1.[dbo].ChiNhanh_1 WHERE  HoKhachHang=@HOKH AND TenKhachHang=@TENKH AND NgaySinh=@NGS
+			   DELETE FROM  ChiNhanh_1.dbo.KhachHang WHERE  HoKhachHang=@HOKH AND TenKhachHang=@TENKH AND NgaySinh=@NGS
 		   AND ThangSinh=@TS AND NamSinh=@NS AND ThoiGian=@TG AND TrangThai=@TT 
 				
 			end
         IF([dbo].[KIEMTRA_CN1](@MAKH) = 1)
 			BEGIN
 		 		-- viet update
-				SELECT  @HOTEN= ( SELECT CONCAT(HoKhachHang,' ',TenKhachHang) AS HoTen FROM ChiNhanh_1.[dbo].ChiNhanh_1)
-			    SELECT @BIRTHDAY=( SELECT CONCAT(NgaySinh,'-',ThangSinh,'-',NamSinh) AS BirthDay FROM ChiNhanh_1.[dbo].ChiNhanh_1)
+				SELECT  @HOTEN= ( SELECT CONCAT(HoKhachHang,' ',TenKhachHang) AS HoTen FROM ChiNhanh_1.dbo.KhachHang)
+			    SELECT @BIRTHDAY=( SELECT CONCAT(NgaySinh,'-',ThangSinh,'-',NamSinh) AS BirthDay FROM ChiNhanh_1.dbo.KhachHang)
 
-				 UPDATE ChiNhanh_1.[dbo].ChiNhanh_1 SET
+				 UPDATE ChiNhanh_1.dbo.KhachHang SET
 		HoKhachHang=@HOKH , TenKhachHang=@TENKH , NgaySinh=@NGS
 		  , ThangSinh=@TS , NamSinh=@NS , ThoiGian=@TG , TrangThai=@TT
 			END
 		IF([dbo].[KIEMTRA_CN1](@MAKH) = 0)
 			BEGIN
 				--viet insert
-				SELECT  @HOTEN= ( SELECT CONCAT(HoKhachHang,' ',TenKhachHang) AS HoTen FROM ChiNhanh_1.[dbo].ChiNhanh_1)
-			    SELECT @BIRTHDAY=( SELECT CONCAT(NgaySinh,'-',ThangSinh,'-',NamSinh) AS BirthDay FROM ChiNhanh_1.[dbo].ChiNhanh_1)
+				SELECT  @HOTEN= ( SELECT CONCAT(HoKhachHang,' ',TenKhachHang) AS HoTen FROM ChiNhanh_1.dbo.KhachHang)
+			    SELECT @BIRTHDAY=( SELECT CONCAT(NgaySinh,'-',ThangSinh,'-',NamSinh) AS BirthDay FROM ChiNhanh_1.dbo.KhachHang)
 
-				INSERT INTO ChiNhanh_1.[dbo].ChiNhanh_1(MaKhachHang,HoKhachHang,TenKhachHang,NgaySinh,ThangSinh,NamSinh,ThoiGian,TrangThai)
+				INSERT INTO ChiNhanh_1.dbo.KhachHang(MaKhachHang,HoKhachHang,TenKhachHang,NgaySinh,ThangSinh,NamSinh,ThoiGian,TrangThai)
 		  Values(@MAKH,@HOKH,@TENKH,@NGS,@TS,@NS,@TG,@TT)
 				
 			END
@@ -85,14 +97,14 @@ CREATE function KIEMTRA_CN1 (@MAKH NVARCHAR(15))
 returns int
 AS
 BEGIN
-     IF (EXISTS ( SELECT MaKhachHang from ChiNhanh_1.[dbo].ChiNhanh_1 where MaKhachHang=@MAKH ))
+     IF (EXISTS ( SELECT MaKhachHang from ChiNhanh_1.dbo.KhachHang where MaKhachHang=@MAKH ))
 		 BEGIN
 		  return 1-- 1 là tồn tại
 		 END
 	return 0 -- 0 là chưa tồn tại
 END
 
-
+go
 -------------- NẠP DỮ LIỆU CHO CN2 ------------------
 IF exists(select * from sys.procedures where name = 'NapDuLieuChiNhanh2')
 DROP proc NapDuLieuChiNhanh2
