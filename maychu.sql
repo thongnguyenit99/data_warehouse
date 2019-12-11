@@ -48,6 +48,20 @@ DROP COLUMN TrangThai;
 DROP COLUMN ThoiGian,TrangThai;
 GO
 ----------NẠP DỮU LIỆU CHO KHÁCH HÀNG MÁY CHỦ -----------
+--- function kiểm tra
+IF OBJECT_ID('KIEMTRA_CN1') IS NOT NULL
+DROP function KIEMTRA_CN1
+GO
+CREATE function KIEMTRA_CN1 (@MAKH NVARCHAR(15), @MA_NGUON NVARCHAR(15))
+returns int
+AS
+BEGIN
+     IF (EXISTS ( SELECT MaKH from DATA_WAREHOUSE.dbo.KhachHang where MaKH=@MAKH AND MaNguonDuLieu=@MA_NGUON ))
+		 BEGIN
+		  return 1-- 1 là tồn tại
+		 END
+	return 0 -- 0 là chưa tồn tại
+END
 
 ---- THEM DU LIEU CN1 VAO DATA MAY CHU
 IF exists(select * from sys.procedures where name = 'NapDuLieuChiNhanh1')
@@ -59,69 +73,89 @@ begin
     DECLARE @MAKH NVARCHAR(10)
 	declare a cursor for
 	(
-		select * from ChiNhanh_1.dbo.KhachHang
+	-- chô này là lấy được toàn bộ dữ liệu chi nhánh 1
+		select * from ChiNhanh_1.dbo.KhachHang 
 	)
 	open a
+
 	DECLARE @HOKH NVARCHAR(10),@TENKH NVARCHAR(10),@NGS CHAR(2),@TS CHAR(2),@NS CHAR(2),@TG DATETIME,@TT CHAR(1)
 	DECLARE @HOTEN NVARCHAR(45),@BIRTHDAY DATE, @MA_NGUON nvarchar(15)
-	FETCH NEXT FROM a INTO @MAKH -- chỗ này máy được từng dòng
+
+	--SELECT @MAKH=MaKhachHang FROM ChiNhanh_1.dbo.KhachHang WHERE MaKhachHang=@MAKH
+	--SELECT @HOKH=HoKhachHang FROM ChiNhanh_1.dbo.KhachHang WHERE HoKhachHang=@HOKH
+	--SELECT @TENKH=TenKhachHang FROM ChiNhanh_1.dbo.KhachHang WHERE TenKhachHang=@TENKH
+
+	-- chỗ này Đưa con trỏ vào dòng đầu tiên
+	FETCH NEXT FROM a INTO @MAKH, @HOTEN, @BIRTHDAY, @MA_NGUON
+	-- sau đó xuất ra thử
+	
+	
+	PRINT @MAKH
 	while(@@FETCH_STATUS = 0)
 	begin
-		if(@TT = 0)
-			begin
+		--if(@MA_NGUON = 0)
+		--	begin
 				--viet delete
-			   SELECT  @HOTEN= ( SELECT CONCAT(HoKhachHang,' ',TenKhachHang) AS HoTen FROM ChiNhanh_1.dbo.KhachHang)
-			   SELECT @BIRTHDAY=( SELECT CONCAT(NgaySinh,'-',ThangSinh,'-',NamSinh) AS BirthDay FROM ChiNhanh_1.dbo.KhachHang)
+			--   SELECT  @HOTEN= ( SELECT CONCAT(HoKhachHang,' ',TenKhachHang) AS HoTen FROM ChiNhanh_1.dbo.KhachHang)
+			--   SELECT @BIRTHDAY=( SELECT CONCAT(NgaySinh,'-',ThangSinh,'-',NamSinh) AS BirthDay FROM ChiNhanh_1.dbo.KhachHang)
                  
-			     DELETE FROM  DATA_WAREHOUSE.dbo.KhachHang WHERE MaKH=@MAKH
-			end
-        IF([dbo].[KIEMTRA_CN1](@MAKH) = 1)
-			BEGIN
-		 		-- viet update
+			--     DELETE FROM  DATA_WAREHOUSE.dbo.KhachHang WHERE MaKH=@MAKH
+			--end
+   --     else IF([dbo].[KIEMTRA_CN1](@MAKH) = 1)
+			--BEGIN
+		 --		-- viet update
+			--	SELECT  @HOTEN= ( SELECT CONCAT(HoKhachHang,' ',TenKhachHang) AS HoTen FROM ChiNhanh_1.dbo.KhachHang)
+			--    SELECT @BIRTHDAY=( SELECT CONCAT(NgaySinh,'-',ThangSinh,'-',NamSinh) AS BirthDay FROM ChiNhanh_1.dbo.KhachHang)
+			--	-- update trên server chứ không phải trên chi nhânh
+			--	 UPDATE DATA_WAREHOUSE.dbo.KhachHang SET
+			--	HoTen=@HOTEN , NgaySinh=@BIRTHDAY  WHERE MaKH=@MAKH AND MaNguonDuLieu=@MA_NGUON
+			--END
+			--else IF([dbo].[KIEMTRA_CN1](@MAKH) = 0)
+			--BEGIN
+				-- Sau đó insert dược chỗ này, thì mới xóa comment ở trên ra, va thôi
+				-- tao có tạo biến từng cái rồi đó
+				-- dữa vào các biến đã lấy từ FETCH sau đó mới chuyển dổi dữ liệu
+				-- là giờ thêm dữ liệu vào cn1  hết mới chuyển sang máy chủ pk
+				-- giờ mày đã có dữ liệu từng dòng của chi nhánh 1 rồi
+				-- viết hàm kiểm tra coi nó là insert , update hay delete rồi thêm vô máy chủ là xong
+				-- ừa
 				SELECT  @HOTEN= ( SELECT CONCAT(HoKhachHang,' ',TenKhachHang) AS HoTen FROM ChiNhanh_1.dbo.KhachHang)
 			    SELECT @BIRTHDAY=( SELECT CONCAT(NgaySinh,'-',ThangSinh,'-',NamSinh) AS BirthDay FROM ChiNhanh_1.dbo.KhachHang)
-				-- update trên server chứ không phải trên chi nhânh
-				 UPDATE DATA_WAREHOUSE.dbo.KhachHang SET
-		HoTen=@HOTEN , NgaySinh=@BIRTHDAY  WHERE MaKH=@MAKH AND MaNguonDuLieu=@MA_NGUON
-			END
-		IF([dbo].[KIEMTRA_CN1](@MAKH) = 0)
-			BEGIN
 				
-				SELECT  @HOTEN= ( SELECT CONCAT(HoKhachHang,' ',TenKhachHang) AS HoTen FROM ChiNhanh_1.dbo.KhachHang)
-			    SELECT @BIRTHDAY=( SELECT CONCAT(NgaySinh,'-',ThangSinh,'-',NamSinh) AS BirthDay FROM ChiNhanh_1.dbo.KhachHang)
+				INSERT INTO KhachHang(MaKH,HoTen,NgaySinh,MaNguonDuLieu)
+				Values(@MAKH,@HOTEN,@BIRTHDAY,@MA_NGUON)
 				
-				INSERT INTO DATA_WAREHOUSE.dbo.KhachHang(MaKH,HoTen,NgaySinh,MaNguonDuLieu)
-		  Values(@MAKH,@HOTEN,@BIRTHDAY,@MA_NGUON)
-				
-			END
-	  FETCH NEXT FROM a INTO @MAKH
+			--END
+	  	FETCH NEXT FROM a INTO @MAKH, @HOTEN, @BIRTHDAY, @MA_NGUON
 	end
 	CLOSE a
 	DEALLOCATE a
 
 end
-DECLARE @M NVARCHAR(20)
-EXEC NapDuLieuChiNhanh1 'kh01'
+
+EXEC NapDuLieuChiNhanh1 
+select * from KhachHang
 
 
 
+go
+-------------- NẠP DỮ LIỆU CHO CN2 ------------------
 --- function kiểm tra
-IF OBJECT_ID('KIEMTRA_CN1') IS NOT NULL
-DROP function KIEMTRA_CN1
+IF OBJECT_ID('KIEMTRA_CN2') IS NOT NULL
+DROP function KIEMTRA_CN2
 GO
-CREATE function KIEMTRA_CN1 (@MAKH NVARCHAR(15))
+CREATE function KIEMTRA_CN2 (@MAKH NVARCHAR(15))
 returns int
 AS
 BEGIN
-     IF (EXISTS ( SELECT MaKhachHang from ChiNhanh_1.dbo.KhachHang where MaKhachHang=@MAKH ))
+     IF (EXISTS ( SELECT MaKhachHang from ChiNhanh_2.[dbo].[KhachHang] where MaKhachHang=@MAKH ))
 		 BEGIN
 		  return 1-- 1 là tồn tại
 		 END
 	return 0 -- 0 là chưa tồn tại
 END
-
-go
--------------- NẠP DỮ LIỆU CHO CN2 ------------------
+---------- STORE CN2
+GO
 IF exists(select * from sys.procedures where name = 'NapDuLieuChiNhanh2')
 DROP proc NapDuLieuChiNhanh2
 GO
@@ -131,7 +165,7 @@ begin
     DECLARE @MAKH NVARCHAR(10)
 	declare b cursor for
 	(
-		select * from ChiNhanh_2.[dbo].[KhachHang]
+		select * from DATA_WAREHOUSE.[dbo].[KhachHang]
 	)
 	open b
 	DECLARE @MAHD NVARCHAR(30),@TG DATETIME,@TT CHAR(1),@DG FLOAT,@SL INT
@@ -165,21 +199,24 @@ begin
 
 end
 
+
+--------------- NẠP DỮ LIỆU CHO HOÁ ĐƠN--------------
 --- function kiểm tra
-IF OBJECT_ID('KIEMTRA_CN2') IS NOT NULL
-DROP function KIEMTRA_CN2
+IF OBJECT_ID('KIEMTRA_HD') IS NOT NULL
+DROP function KIEMTRA_HD
 GO
-CREATE function KIEMTRA_CN2 (@MAKH NVARCHAR(15))
+CREATE function KIEMTRA_HD (@MAHD NVARCHAR(15))
 returns int
 AS
 BEGIN
-     IF (EXISTS ( SELECT MaKhachHang from ChiNhanh2.[dbo].[KhachHang] where MaKhachHang=@MAKH ))
+     IF (EXISTS ( SELECT MaHD from ChiNhanh_1.dbo.HoaDon where MaHD=@MAHD ))
 		 BEGIN
 		  return 1-- 1 là tồn tại
 		 END
 	return 0 -- 0 là chưa tồn tại
 END
---------------- NẠP DỮ LIỆU CHO HOÁ ĐƠN--------------
+
+---- VIẾT STORE
 IF exists(select * from sys.procedures where name = 'NapDuLieuHoaDon')
 DROP proc NapDuLieuHoaDon
 GO
@@ -223,18 +260,4 @@ begin
 	DEALLOCATE c
 end
 
---- function kiểm tra
-IF OBJECT_ID('KIEMTRA_HD') IS NOT NULL
-DROP function KIEMTRA_HD
-GO
-CREATE function KIEMTRA_HD (@MAHD NVARCHAR(15))
-returns int
-AS
-BEGIN
-     IF (EXISTS ( SELECT MaHD from HoaDon.dbo.HoaDon where MaHD=@MAHD ))
-		 BEGIN
-		  return 1-- 1 là tồn tại
-		 END
-	return 0 -- 0 là chưa tồn tại
-END
 
