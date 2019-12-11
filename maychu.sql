@@ -33,6 +33,7 @@ ALTER TABLE [dbo].[HoaDon]
   FOREIGN KEY (MaKhachHang,MaNguonDuLieu)
   REFERENCES [dbo].[KhachHang] (MaKH,MaNguonDuLieu);
 GO
+----------NẠP DỮU LIỆU CHO KHÁCH HÀNG MÁY CHỦ -----------
 
 ---- THEM DU LIEU CN1 VAO DATA MAY CHU
 IF exists(select * from sys.procedures where name = 'NapDuLieuChiNhanh1')
@@ -88,6 +89,8 @@ begin
 	DEALLOCATE a
 
 end
+DECLARE @M NVARCHAR(20)
+EXEC  [dbo].[NapDuLieuChiNhanh1] @M
 
 --- function kiểm tra
 IF OBJECT_ID('KIEMTRA_CN1') IS NOT NULL
@@ -115,7 +118,7 @@ begin
     DECLARE @MAKH NVARCHAR(10)
 	declare b cursor for
 	(
-		select * from ChiNhanh_2.dbo.ChiNhanh_2
+		select * from ChiNhanh_2.[dbo].[KhachHang]
 	)
 	open b
 	DECLARE @MAHD NVARCHAR(30),@TG DATETIME,@TT CHAR(1),@DG FLOAT,@SL INT
@@ -127,19 +130,19 @@ begin
 			begin
 				--viet delete
 			   				
-			   DELETE FROM  ChiNhanh_2.dbo.ChiNhanh_2 WHERE  MaKhachHang=@MAKH 
+			   DELETE FROM  ChiNhanh_2.[dbo].[KhachHang] WHERE  MaKhachHang=@MAKH 
 			
 			end
         IF([dbo].[KIEMTRA_CN2](@MAKH) = 1)
 			BEGIN
 		 		-- viet update
-				 UPDATE ChiNhanh_2.dbo.ChiNhanh_2 SET MaHD=@MAHD,HoTen=@HOTEN,BirthDay=@BIRTHDAY,DonGia=@DG,SoLuong=@SL,
+				 UPDATE ChiNhanh_2.[dbo].[KhachHang] SET MaHD=@MAHD,HoTen=@HOTEN,BirthDay=@BIRTHDAY,DonGia=@DG,SoLuong=@SL,
 		 ThoiGian=@TG , TrangThai=@TT  WHERE MaKhachHang=@MAKH
 			END
 		IF([dbo].[KIEMTRA_CN2](@MAKH) = 0)
 			BEGIN
 				--viet insert
-				INSERT INTO ChiNhanh_2.dbo.ChiNhanh_2(MaKhachHang,MaHD,HoTen,BirthDay,DonGia,SoLuong,ThoiGian,TrangThai)
+				INSERT INTO ChiNhanh_2.[dbo].[KhachHang](MaKhachHang,MaHD,HoTen,BirthDay,DonGia,SoLuong,ThoiGian,TrangThai)
 		  Values(@MAKH,@MAHD,@HOTEN,@BIRTHDAY,@DG,@SL,@TG,@TT)
 				
 			END
@@ -158,7 +161,7 @@ CREATE function KIEMTRA_CN2 (@MAKH NVARCHAR(15))
 returns int
 AS
 BEGIN
-     IF (EXISTS ( SELECT MaKhachHang from ChiNhanh_2.[dbo].ChiNhanh_2 where MaKhachHang=@MAKH ))
+     IF (EXISTS ( SELECT MaKhachHang from ChiNhanh2.[dbo].[KhachHang] where MaKhachHang=@MAKH ))
 		 BEGIN
 		  return 1-- 1 là tồn tại
 		 END
