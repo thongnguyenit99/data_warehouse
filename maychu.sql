@@ -52,11 +52,11 @@ GO
 IF OBJECT_ID('KIEMTRA_CN1') IS NOT NULL
 DROP function KIEMTRA_CN1
 GO
-CREATE function KIEMTRA_CN1 (@MAKH NVARCHAR(15),@MA_NGUON NVARCHAR(15))
+CREATE function KIEMTRA_CN1 (@MAKH NVARCHAR(15))
 returns int
 AS
 BEGIN
-     IF (EXISTS ( SELECT MaKH from DATA_WAREHOUSE.dbo.KhachHang where MaKH=@MAKH  AND MaNguonDuLieu=@MA_NGUON))
+     IF (EXISTS ( SELECT MaKH from DATA_WAREHOUSE.dbo.KhachHang where MaKH=@MAKH  ))
 		 BEGIN
 		  return 1-- 1 là tồn tại
 		 END
@@ -70,75 +70,46 @@ GO
 create proc NapDuLieuChiNhanh1
 as
 begin
-    DECLARE @MAKH NVARCHAR(10)
 	declare a cursor for
 	(
 	-- chô này là lấy được toàn bộ dữ liệu chi nhánh 1
-		select MaKhachHang,HoKhachHang,TenKhachHang,NgaySinh,ThangSinh,NamSinh from ChiNhanh_1.dbo.KhachHang 
+		select MaKhachHang,HoKhachHang,TenKhachHang,NgaySinh,ThangSinh,NamSinh,TrangThai from ChiNhanh_1.dbo.KhachHang 
 	)
+	DECLARE @MAKH NVARCHAR(10), @HOKH NVARCHAR(10),@TENKH NVARCHAR(10),@NGS CHAR(2),@TS CHAR(2),@NS CHAR(2),@TT CHAR(1)
 	open a
 
-	DECLARE @HOKH NVARCHAR(10),@TENKH NVARCHAR(10),@NGS CHAR(2),@TS CHAR(2),@NS CHAR(2),@TG DATETIME,@TT CHAR(1)
-	DECLARE @HOTEN NVARCHAR(45),@BIRTHDAY DATE, @MA_NGUON nvarchar(15)
-
-	SET @MAKH = (SELECT MaKhachHang FROM ChiNhanh_1.dbo.KhachHang WHERE MaKhachHang=@MAKH)
-	SELECT @HOKH=HoKhachHang FROM ChiNhanh_1.dbo.KhachHang WHERE HoKhachHang=@HOKH
-	SELECT @TENKH=TenKhachHang FROM ChiNhanh_1.dbo.KhachHang WHERE TenKhachHang=@TENKH
-	SET  @HOTEN=  CONCAT(@HOKH,' ',@TENKH)
-	SET @BIRTHDAY=( SELECT CONCAT(NgaySinh,'-',ThangSinh,'-',NamSinh) AS BirthDay FROM ChiNhanh_1.dbo.KhachHang)
-	SET @MA_NGUON =( SELECT MaNguonDuLieu FROM KhachHang WHERE MaNguonDuLieu=@MA_NGUON)
-
 	-- chỗ này Đưa con trỏ vào dòng đầu tiên
-	FETCH NEXT FROM a INTO @MAKH, @HOTEN, @BIRTHDAY, @MA_NGUON
+	FETCH NEXT FROM a INTO @MAKH, @HOKH, @TENKH, @NGS, @TS, @NS, @TT
 	-- sau đó xuất ra thử
 	while(@@FETCH_STATUS = 0)
 	begin
+
+	DECLARE @HOTEN NVARCHAR(45),@BIRTHDAY DATE, @MA_NGUON nvarchar(15)
+	
+	SET  @HOTEN=  CONCAT(@HOKH,' ',@TENKH)
+	SET @BIRTHDAY=CONCAT(@NGS,'-',@TS,'-',@NS)
+	SET @MA_NGUON = N'CHI NHANH 1'
 		if(@TT = 0)
 			begin
 				--viet delete
-			   
-			 --   SELECT @MAKH=(SELECT MaKhachHang FROM ChiNhanh_1.dbo.KhachHang WHERE MaKhachHang=@MAKH)
-				--SELECT @HOKH=(SELECT HoKhachHang FROM ChiNhanh_1.dbo.KhachHang WHERE HoKhachHang=@HOKH)
-				--SET @TENKH=(SELECT TenKhachHang FROM ChiNhanh_1.dbo.KhachHang WHERE TenKhachHang=@TENKH)
-				--SET  @HOTEN=  CONCAT(@HOKH,' ',@TENKH)
-				--SET @BIRTHDAY=( SELECT CONCAT(NgaySinh,'-',ThangSinh,'-',NamSinh) AS BirthDay FROM ChiNhanh_1.dbo.KhachHang)
-				--SET @MA_NGUON =( SELECT MaNguonDuLieu FROM KhachHang WHERE MaNguonDuLieu=@MA_NGUON)
                  
 			     DELETE FROM  DATA_WAREHOUSE.dbo.KhachHang WHERE MaKH=@MAKH
 			end
-        ELSE if([dbo].[KIEMTRA_CN1](@MAKH,@MA_NGUON) = 1 )
+        ELSE if([dbo].[KIEMTRA_CN1](@MAKH) = 1  AND  @TT=1)
 		        
 			BEGIN
 		 		-- viet update
-				--SELECT @MAKH=(SELECT MaKhachHang FROM ChiNhanh_1.dbo.KhachHang WHERE MaKhachHang=@MAKH)
-				--SELECT @HOKH=(SELECT HoKhachHang FROM ChiNhanh_1.dbo.KhachHang WHERE HoKhachHang=@HOKH)
-				--SET @TENKH=(SELECT TenKhachHang FROM ChiNhanh_1.dbo.KhachHang WHERE TenKhachHang=@TENKH)
-				--SET  @HOTEN=  CONCAT(@HOKH,' ',@TENKH)
-				--SET @BIRTHDAY=( SELECT CONCAT(NgaySinh,'-',ThangSinh,'-',NamSinh) AS BirthDay FROM ChiNhanh_1.dbo.KhachHang)
-				--SET @MA_NGUON =( SELECT MaNguonDuLieu FROM KhachHang WHERE MaNguonDuLieu=@MA_NGUON)
-
 			
 				 UPDATE DATA_WAREHOUSE.dbo.KhachHang SET
 				HoTen=@HOTEN , NgaySinh=@BIRTHDAY  WHERE MaKH=@MAKH AND MaNguonDuLieu=@MA_NGUON
 			END
-		else IF([dbo].[KIEMTRA_CN1](@MAKH,@MA_NGUON) = 0)
+		else IF([dbo].[KIEMTRA_CN1](@MAKH) = 0 AND @TT=1)
 			BEGIN
-				-- Sau đó insert dược chỗ này, thì mới xóa comment ở trên ra, va thôi
-				-- dữa vào các biến đã lấy từ FETCH sau đó mới chuyển dổi dữ liệu
-				-- là giờ thêm dữ liệu vào cn1  hết mới chuyển sang máy chủ pk
-				-- viết hàm kiểm tra coi nó là insert , update hay delete rồi thêm vô máy chủ là xong
-
-				--SELECT @MAKH=(SELECT MaKhachHang FROM ChiNhanh_1.dbo.KhachHang WHERE MaKhachHang=@MAKH)
-				--SELECT @HOKH=(SELECT HoKhachHang FROM ChiNhanh_1.dbo.KhachHang WHERE HoKhachHang=@HOKH)
-				--SET @TENKH=(SELECT TenKhachHang FROM ChiNhanh_1.dbo.KhachHang WHERE TenKhachHang=@TENKH)
-				--SET  @HOTEN=  CONCAT(@HOKH,' ',@TENKH)
-				--SET @BIRTHDAY=( SELECT CONCAT(NgaySinh,'-',ThangSinh,'-',NamSinh) AS BirthDay FROM ChiNhanh_1.dbo.KhachHang)
-				--SET @MA_NGUON =( SELECT MaNguonDuLieu FROM KhachHang WHERE MaNguonDuLieu=@MA_NGUON)
 				
 				INSERT INTO KhachHang(MaKH,HoTen,NgaySinh,MaNguonDuLieu)
 				Values(@MAKH,@HOTEN,@BIRTHDAY,@MA_NGUON)
 		    END
-	  	FETCH NEXT FROM a INTO @MAKH, @HOTEN, @BIRTHDAY, @MA_NGUON
+	  	FETCH NEXT FROM a INTO @MAKH, @HOKH, @TENKH, @NGS, @TS, @NS, @TT
 	end
 	CLOSE a
 	DEALLOCATE a
@@ -158,21 +129,21 @@ GO
 create proc NapDuLieuChiNhanh2
 as
 begin
-    DECLARE @MAKH NVARCHAR(10)
 	declare b cursor for
 	(
-		select * from ChiNhanh_2.[dbo].[KhachHang]
+		select MaKhachHang, MaHD, HoTen, BirthDay, DonGia, SoLuong, TrangThai from ChiNhanh_2.[dbo].[KhachHang]
 	)
 	open b
-	DECLARE @MAHD NVARCHAR(30),@TG DATETIME,@TT CHAR(1),@DG FLOAT,@SL INT
+	DECLARE @MAKH NVARCHAR(10), @MAHD NVARCHAR(30),@TT CHAR(1),@DG FLOAT,@SL INT
 	DECLARE @HOTEN NVARCHAR(45),@BIRTHDAY DATE,@MA_NGUON NVARCHAR(15)
-	SET @HOTEN=(SELECT HoTen FROM KhachHang WHERE HoTen=@HOTEN)
-	SET @BIRTHDAY=( SELECT BirthDay FROM ChiNhanh_2.dbo.KhachHang WHERE BirthDay=@BIRTHDAY)
-	SET @MAKH= (SELECT MaKH FROM KhachHang WHERE MaKH=@MAKH)
-	SET @MA_NGUON=''
-	FETCH NEXT FROM b INTO @MAKH, @HOTEN, @BIRTHDAY, @MA_NGUON -- chỗ này máy được từng dòng
+	--SET @HOTEN=(SELECT HoTen FROM KhachHang WHERE HoTen=@HOTEN)
+	--SET @BIRTHDAY=( SELECT BirthDay FROM ChiNhanh_2.dbo.KhachHang WHERE BirthDay=@BIRTHDAY)
+	--SET @MAKH= (SELECT MaKH FROM KhachHang WHERE MaKH=@MAKH)
+	
+	FETCH NEXT FROM b INTO @MAKH,@MAHD, @HOTEN, @BIRTHDAY,@DG,@SL, @TT -- chỗ này máy được từng dòng
 	while(@@FETCH_STATUS = 0)
 	begin
+		SET @MA_NGUON = N'CHI NHANH 2'
 		if(@TT = 0)
 			begin
 				--viet delete
@@ -180,19 +151,19 @@ begin
 			   DELETE FROM  DATA_WAREHOUSE.[dbo].[KhachHang] WHERE  MaKH=@MAKH 
 			
 			end
-        IF([dbo].[KIEMTRA_CN1](@MAKH,@MA_NGUON) = 1)
+        ELSE IF([dbo].[KIEMTRA_CN1](@MAKH) = 1 AND @TT=1)
 			BEGIN
 		 		-- viet update
 				 UPDATE DATA_WAREHOUSE.[dbo].[KhachHang] SET HoTen=@HOTEN,NgaySinh=@BIRTHDAY WHERE MaKH=@MAKH
 			END
-		IF([dbo].[KIEMTRA_CN1](@MAKH,@MA_NGUON) = 0)
+		ELSE IF([dbo].[KIEMTRA_CN1](@MAKH) = 0 AND @TT=1)
 			BEGIN
 				--viet insert
 				INSERT INTO DATA_WAREHOUSE.[dbo].[KhachHang](MaKH,HoTen,NgaySinh,MaNguonDuLieu)
 		  Values(@MAKH,@HOTEN,@BIRTHDAY,@MA_NGUON)
 				
 			END
-	  FETCH NEXT FROM b INTO @MAKH, @HOTEN, @BIRTHDAY, @MA_NGUON
+	  FETCH NEXT FROM b INTO @MAKH,@MAHD, @HOTEN, @BIRTHDAY,@DG,@SL, @TT
 	end
 	CLOSE b
 	DEALLOCATE b
@@ -206,11 +177,11 @@ SELECT *FROM KhachHang
 IF OBJECT_ID('KIEMTRA_HD') IS NOT NULL
 DROP function KIEMTRA_HD
 GO
-CREATE function KIEMTRA_HD (@MAHD NVARCHAR(15),@MA_NGUON NVARCHAR(15))
+CREATE function KIEMTRA_HD (@MAHD NVARCHAR(15))
 returns int
 AS
 BEGIN
-     IF (EXISTS ( SELECT MaHD from DATA_WAREHOUSE.dbo.HoaDon where MaHD=@MAHD AND MaNguonDuLieu=@MA_NGUON ))
+     IF (EXISTS ( SELECT MaHD from DATA_WAREHOUSE.dbo.HoaDon where MaHD=@MAHD ))
 		 BEGIN
 		  return 1-- 1 là tồn tại
 		 END
@@ -224,35 +195,20 @@ GO
 create proc NapDuLieuHoaDon
 as
 begin
-    DECLARE @MAKH NVARCHAR(10)
 	declare c cursor for
 	(
-		select MaHD,MaKH,SanPham,NgayLap,DonGia,SoLuong from ChiNhanh_1.dbo.HoaDon 
+		select MaHD,MaKH,SanPham,NgayLap,DonGia,SoLuong,TrangThai from ChiNhanh_1.dbo.HoaDon 
 	)
 	open c
-	DECLARE @MAHD NVARCHAR(30),@TG DATETIME,@TT CHAR(1),@DG FLOAT,@SL INT
+	DECLARE @MAKH NVARCHAR(10),@MAHD NVARCHAR(30),@TT CHAR(1),@DG FLOAT,@SL INT
 	DECLARE @SP NVARCHAR(30),@NGAY DATETIME,@MA_NGUON NVARCHAR(15)
-	-- CHUYỂN DỮ LIỆU--
-	--SELECT @MAHD=MaHD FROM ChiNhanh_1.[dbo].[HoaDon] 
-	--SELECT @MAKH=MaKH FROM ChiNhanh_1.[dbo].[HoaDon]
-	--SELECT @SP=SanPham FROM ChiNhanh_1.[dbo].[HoaDon]
-	--SELECT @NGAY=NgayLap FROM ChiNhanh_1.[dbo].[HoaDon]
-	--SELECT @DG=DonGia FROM ChiNhanh_1.[dbo].[HoaDon]
-	--SELECT @SL=SoLuong FROM ChiNhanh_1.[dbo].[HoaDon]
-	--SELECT @TT=TrangThai FROM ChiNhanh_1.[dbo].[HoaDon]
-	SET @MAHD=(SELECT MaHD FROM ChiNhanh_1.[dbo].[HoaDon] WHERE MaHD=@MAHD )
-	SET @MAKH=(SELECT MaKH FROM ChiNhanh_1.[dbo].[HoaDon] WHERE MaKH=@MAKH )
-	SET @SP=(SELECT SanPham FROM ChiNhanh_1.[dbo].[HoaDon] WHERE SanPham=@SP )
-	SET @DG=(SELECT DonGia FROM ChiNhanh_1.[dbo].[HoaDon] WHERE DonGia=@DG )
-	SET @SL=(SELECT SoLuong FROM ChiNhanh_1.[dbo].[HoaDon] WHERE SoLuong=@SL )
-	SET @TT=(SELECT TrangThai FROM ChiNhanh_1.[dbo].[HoaDon] WHERE TrangThai=@TT )
-	SET @MA_NGUON=(SELECT MaNguonDuLieu  FROM DATA_WAREHOUSE.[dbo].[HoaDon] WHERE MaNguonDuLieu=@MA_NGUON )
 
-	
+    
 
-	FETCH NEXT FROM c INTO @MAHD,@MAKH,@SP,@NGAY,@DG,@SL -- chỗ này máy được từng dòng
+	FETCH NEXT FROM c INTO @MAHD,@MAKH,@SP,@NGAY,@DG,@SL,@TT -- chỗ này máy được từng dòng
 	while(@@FETCH_STATUS = 0)
 	begin
+		SET @MA_NGUON = N'CHI NHANH 1'
 		if(@TT=0)
 			begin
 				--viet delete
@@ -260,20 +216,22 @@ begin
 			   DELETE FROM  DATA_WAREHOUSE.dbo.HoaDon WHERE  MaHD=@MAHD 
 			
 			end
-        IF([dbo].[KIEMTRA_HD](@MAHD,@MA_NGUON) = 1)
+        ELSE IF([dbo].[KIEMTRA_HD](@MAHD) = 1 AND @TT=1)
 			BEGIN
 		 		-- viet update
 				 UPDATE  DATA_WAREHOUSE.dbo.HoaDon SET MaKhachHang=@MAKH,SanPham=@SP,NgayLap=@NGAY,DonGia=@DG,SoLuong=@SL
 		    WHERE MaHD=@MAHD AND MaNguonDuLieu=@MA_NGUON AND MaKhachHang=@MAKH
 			END
-		IF([dbo].[KIEMTRA_HD](@MAHD,@MA_NGUON) = 0)
+		ELSE IF([dbo].[KIEMTRA_HD](@MAHD) = 0 AND @TT=1)
 			BEGIN
 				--viet insert
+			    
+
 				INSERT INTO DATA_WAREHOUSE.dbo.HoaDon (MaHD,MaKhachHang,SanPham,NgayLap,DonGia,SoLuong,MaNguonDuLieu)
 		  Values(@MAHD,@MAKH,@SP,@NGAY,@DG,@SL,@MA_NGUON)  
 				
 			END
-	 FETCH NEXT FROM c INTO @MAHD,@MAKH,@SP,@NGAY,@DG,@SL
+	 FETCH NEXT FROM c INTO @MAHD,@MAKH,@SP,@NGAY,@DG,@SL,@TT
 	end
 	CLOSE c
 	DEALLOCATE c
